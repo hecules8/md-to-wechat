@@ -1,53 +1,61 @@
-# MD2WeChat
+# MD to Wechat
 
-把 Markdown 一键转成微信公众号编辑器可直接粘贴的富文本——所有样式内联，代码高亮、公式、Graphviz 图、表格、任务清单原样保留，粘进编辑器零返工。
+一个面向微信公众号的本地 Markdown 排版工具。它只把 GFM 表格转换成高清 PNG，标题、段落、列表、引用、链接与图片仍保留为可编辑的富文本。
 
-🌐 **在线访问**：<https://pigtom.github.io/md-to-wechat/>
-
-## 截图
-
-![编辑器截图](./docs/screenshot.png)
-
-## 功能特性
-
-- **实时预览**：左编辑、右预览，300ms 防抖刷新
-- **一键复制到微信**：点「复制到微信」按钮，直接粘到公众号编辑器，富文本格式无丢失
-- **多套主题**：深蓝技术风（默认）、微信绿、暖色内容风、玫瑰红
-- **代码高亮**：基于 highlight.js，自动语言识别
-- **数学公式**：行内 `$E=mc^2$` 与块级 `$$ … $$`，渲染为外链 SVG 图（绕开微信对 `<svg>` 的限制）
-- **Graphviz / DOT 图**：` ```dot ` 代码块用 wasm 编译成 SVG 内嵌
-- **GFM 扩展**：表格、删除线、自动链接、任务清单（`- [ ]` / `- [x]` 渲染为 ☐ / ☑ 不被微信打散）
-- **目录**：标题 `## 目录` 处自动生成
-- **缩进保护**：代码块行首缩进用 `&nbsp;` + `<br>` 编码，不依赖 WeChat 是否保留 `white-space:pre`
-
-## 使用方式
-
-1. 打开 <https://pigtom.github.io/md-to-wechat/>
-2. 在左侧编辑 Markdown
-3. 顶栏选主题
-4. 点右上「复制到微信」
-5. 在公众号编辑器里 `Cmd/Ctrl+V` 粘贴
-
-## 本地开发
+## 使用
 
 ```bash
 npm install
-npm run dev      # 启动 dev server
-npm test         # 跑 vitest
-npm run build    # 类型检查 + 构建到 dist/
-npm run lint
+npm run dev
 ```
 
-## 技术栈
+打开终端显示的本地地址，导入 `.md` 文件或直接编辑示例内容，选择表格主题，然后点击“生成高清表格图片”。生成完成后可一键复制至微信公众号，也可以逐张下载 PNG 或一次下载全部图片的 ZIP 压缩包。
 
-- **React 19** + **Vite** + **TypeScript**
-- **unified** / **remark** / **rehype** 流水线
-- **rehype-katex**（按需加载，仅文档含 `$` 时拉取）
-- **@viz-js/viz**（按需加载，仅文档含 dot 块时拉取 wasm）
-- **rehype-highlight**、**remark-gfm**、**remark-math**、**remark-toc**
+## 本地部署
 
-## 部署
+Windows 用户可直接双击 `启动本地服务.bat`。脚本会在需要时安装依赖、生成生产版本、打开浏览器并启动本地服务：
 
-`main` 分支推送后由 `.github/workflows/deploy.yml` 自动构建并发布到 GitHub Pages。
+```text
+http://127.0.0.1:4173
+```
 
-仓库 Settings → Pages → Source 需设为 **GitHub Actions**。
+也可以在终端手动运行：
+
+```bash
+npm install
+npm run build
+npm run start
+```
+
+关闭启动脚本的命令窗口即可停止服务。服务仅监听本机回环地址，局域网内的其他设备无法访问。
+
+## 当前能力
+
+- Markdown 实时预览与本地文件导入
+- GFM 表格识别，其他文章节点不参与截图
+- 2× 像素密度 PNG，按列数自动选择表格宽度
+- 表格整体始终占满公众号内容宽度；自适应模式按每列文字量分配 100% 内的占比，逐列手动调整时其余列自动补足或让出空间
+- PNG 只截取表格本体，不包含外层留白、装饰边框或圆角
+- 超过 12 行的长表格自动分页，每页重复表头，避免图片下部截断
+- 墨绿编辑、科技蓝、雅致红、黑白报告四套渐变质感主题，使用横向色卡直接切换
+- 多表格批量转换、逐张下载与全部图片 ZIP 一键下载
+- 富文本和纯文本双格式剪贴板写入
+- 图片生成与公众号复制分开操作，生成后可重复复制
+- 复制前把关键排版样式内联，提高公众号粘贴后的稳定性
+- 转换失败时保留原表格，不破坏正文
+
+## 浏览器说明
+
+建议使用最新版 Chrome 或 Edge。富文本剪贴板通常要求 `localhost` 或 HTTPS 安全环境。微信公众号仍可能根据平台策略处理 `data:` 图片；如果图片没有随全文进入编辑器，请使用工具下方的 PNG 下载按钮，将图片单独插入对应位置。
+
+## 验证
+
+```bash
+npm run lint
+npm test
+npm run build
+```
+
+## 技术来源
+
+整体工作流参考 [doocs/md](https://github.com/doocs/md) 的公众号 Markdown 编辑体验，局部 DOM 成像使用 [html-to-image](https://github.com/bubkoo/html-to-image)。Markdown 解析使用 Marked，输入 HTML 由 DOMPurify 清理。具体许可证见 `LICENSES.md`。
