@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from 'react'
 import {
   copyRichArticle,
   serializeArticleForClipboard,
   type CopyFunction,
 } from '../lib/clipboard'
 import { renderMarkdown } from '../lib/markdown'
+import { renderMermaidDiagrams } from '../lib/mermaid'
 import { downloadAllArtifacts, type DownloadAllFunction } from '../lib/download'
 import {
   captureTablePng,
@@ -82,6 +83,7 @@ export function EditorWorkspace({
   const [artifacts, setArtifacts] = useState<TableArtifact[]>([])
   const [status, setStatus] = useState('已识别 2 个表格，等待转换')
   const [isConverting, setIsConverting] = useState(false)
+  const [isRenderingMermaid, setIsRenderingMermaid] = useState(false)
   const [theme, setTheme] = useState<TableThemeId>('editorial')
   const [tableFontSize, setTableFontSize] = useState(14)
   const [cellWidth, setCellWidth] = useState(10)
@@ -109,6 +111,41 @@ export function EditorWorkspace({
     ),
     [convertedHtml, manualColumnWidths, sourceHtml, tableDefinitions, tableLayout],
   )
+  useEffect(() => {
+    const preview = previewRef.current
+    if (!preview || preview.dataset.renderedSource === renderedHtml) return
+    preview.innerHTML = renderedHtml
+    preview.dataset.renderedSource = renderedHtml
+  }, [renderedHtml])
+
+  useEffect(() => {
+    const preview = previewRef.current
+    if (!preview) return
+
+    const pendingCount = preview.querySelectorAll('div.mermaid-diagram--pending').length
+    if (pendingCount === 0) {
+      setIsRenderingMermaid(false)
+      return
+    }
+
+    let active = true
+    setIsRenderingMermaid(true)
+    setStatus(`正在渲染 ${pendingCount} 个 Mermaid 图表…`)
+
+    void renderMermaidDiagrams(preview).then((renderedCount) => {
+      if (!active) return
+      setIsRenderingMermaid(false)
+      setStatus(
+        renderedCount === pendingCount
+          ? `已渲染 ${renderedCount} 个 Mermaid 图表，请生成表格图片`
+          : `有 ${pendingCount - renderedCount} 个 Mermaid 图表渲染失败`,
+      )
+    })
+
+    return () => {
+      active = false
+    }
+  }, [renderedHtml])
 
   const updateMarkdown = (value: string) => {
     setMarkdown(value)
@@ -457,7 +494,6 @@ export function EditorWorkspace({
               data-table-theme={theme}
               data-table-layout={tableLayout}
               style={tableStyle}
-              dangerouslySetInnerHTML={{ __html: renderedHtml }}
             />
           </div>
         </div>
@@ -481,14 +517,23 @@ export function EditorWorkspace({
             <button
               className="primary-button"
               type="button"
-              disabled={isConverting}
-              onClick={artifacts.length > 0 ? copyToWechat : generateImages}
+              disabled={isConverting || isRenderingMermaid}
+              onClick={generateImages}
             >
               {isConverting
                 ? '正在生成…'
                 : artifacts.length > 0
-                  ? '复制至微信公众号'
+                  ? '重新生成图片'
                   : '生成高清表格图片'}
+            </button>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={isConverting || isRenderingMermaid || artifacts.length === 0}
+              onClick={copyToWechat}
+              title={artifacts.length === 0 ? '请先生成表格图片' : '复制整篇富文本至微信公众号'}
+            >
+              复制至微信公众号
             </button>
           </div>
         </div>
