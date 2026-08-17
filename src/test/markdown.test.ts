@@ -30,4 +30,12 @@ describe('renderMarkdown', () => {
     expect(html).not.toContain('<script')
     expect(html).toContain('正文')
   })
+
+  it('marks Mermaid code blocks for image rendering', () => {
+    const html = renderMarkdown('```mermaid\ngraph TD\n  A[开始] --> B[结束]\n```')
+
+    expect(html).toContain('mermaid-diagram--pending')
+    expect(html).toContain('graph TD')
+    expect(html).not.toContain('<pre')
+  })
 })

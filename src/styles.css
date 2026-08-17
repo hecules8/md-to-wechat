@@ -908,6 +908,32 @@ button {
   margin: 0 auto;
 }
 
+.mermaid-diagram-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  margin: 1.4rem auto;
+}
+
+.mermaid-capture-staging {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  overflow: visible;
+  background: #fff;
+  pointer-events: none;
+}
+
+.mermaid-diagram--error {
+  margin: 1rem 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, white);
+  background: color-mix(in srgb, var(--danger) 8%, white);
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
 .capture-staging {
   position: absolute !important;
   z-index: -1000 !important;

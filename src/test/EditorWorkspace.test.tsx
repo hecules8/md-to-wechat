@@ -4,6 +4,13 @@ import { describe, expect, it, vi } from 'vitest'
 import { EditorWorkspace } from '../components/EditorWorkspace'
 
 describe('EditorWorkspace', () => {
+  it('keeps the WeChat copy action visible before images are generated', () => {
+    render(<EditorWorkspace />)
+
+    expect(screen.getByRole('button', { name: '复制至微信公众号' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '生成高清表格图片' })).toBeEnabled()
+  })
+
   it('generates images first, then copies to WeChat and downloads every image separately', async () => {
     const user = userEvent.setup()
     const copy = vi.fn().mockResolvedValue(undefined)
