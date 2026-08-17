@@ -2,6 +2,10 @@
 
 一个面向微信公众号的本地 Markdown 排版工具。它只把 GFM 表格转换成高清 PNG，标题、段落、列表、引用、链接与图片仍保留为可编辑的富文本。
 
+## 在线使用
+
+无需安装，直接打开在线版：[MD to Wechat](https://hecules8.github.io/md-to-wechat/)
+
 ## 使用
 
 ```bash
