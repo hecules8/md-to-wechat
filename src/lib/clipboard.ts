@@ -28,6 +28,11 @@ const INLINE_STYLE_PROPERTIES = [
   'width',
 ] as const
 
+const WECHAT_TEXT_ALIGN_VALUES: Record<string, string> = {
+  start: 'left',
+  end: 'right',
+}
+
 export type CopyFunction = (html: string, plainText: string) => Promise<void>
 
 export function serializeArticleForClipboard(root: HTMLElement): string {
@@ -41,7 +46,10 @@ export function serializeArticleForClipboard(root: HTMLElement): string {
     const computed = window.getComputedStyle(source)
     INLINE_STYLE_PROPERTIES.forEach((property) => {
       const value = computed.getPropertyValue(property)
-      if (value) target.style.setProperty(property, value)
+      const clipboardValue = property === 'text-align'
+        ? WECHAT_TEXT_ALIGN_VALUES[value] ?? value
+        : value
+      if (clipboardValue) target.style.setProperty(property, clipboardValue)
     })
   })
 
