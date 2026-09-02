@@ -33,6 +33,20 @@ const WECHAT_TEXT_ALIGN_VALUES: Record<string, string> = {
   end: 'right',
 }
 
+function replacePreformattedBlocksForWechat(root: HTMLElement): void {
+  root.querySelectorAll('pre').forEach((preformatted) => {
+    const container = document.createElement('div')
+    Array.from(preformatted.attributes).forEach(({ name, value }) => {
+      container.setAttribute(name, value)
+    })
+    container.innerHTML = preformatted.innerHTML
+    container.style.whiteSpace = 'pre-wrap'
+    container.style.overflowWrap = 'anywhere'
+    container.style.wordBreak = 'break-word'
+    preformatted.replaceWith(container)
+  })
+}
+
 export type CopyFunction = (html: string, plainText: string) => Promise<void>
 
 export function serializeArticleForClipboard(root: HTMLElement): string {
@@ -52,6 +66,8 @@ export function serializeArticleForClipboard(root: HTMLElement): string {
       if (clipboardValue) target.style.setProperty(property, clipboardValue)
     })
   })
+
+  replacePreformattedBlocksForWechat(clone)
 
   return clone.outerHTML
 }
