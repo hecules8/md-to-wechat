@@ -33,6 +33,8 @@ const WECHAT_TEXT_ALIGN_VALUES: Record<string, string> = {
   end: 'right',
 }
 
+const RESPONSIVE_IMAGE_SELECTOR = '.article-table-image, .mermaid-diagram-image'
+
 function replacePreformattedBlocksForWechat(root: HTMLElement): void {
   root.querySelectorAll('pre').forEach((preformatted) => {
     const container = document.createElement('div')
@@ -60,6 +62,14 @@ export function serializeArticleForClipboard(root: HTMLElement): string {
     const computed = window.getComputedStyle(source)
     INLINE_STYLE_PROPERTIES.forEach((property) => {
       const value = computed.getPropertyValue(property)
+      if (property === 'width') {
+        target.style.removeProperty('width')
+        if (source.matches(RESPONSIVE_IMAGE_SELECTOR)) {
+          target.style.width = '100%'
+          target.style.maxWidth = '100%'
+        }
+        return
+      }
       const clipboardValue = property === 'text-align'
         ? WECHAT_TEXT_ALIGN_VALUES[value] ?? value
         : value

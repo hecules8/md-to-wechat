@@ -43,4 +43,41 @@ describe('serializeArticleForClipboard', () => {
 
     article.remove()
   })
+
+  it('omits preview-dependent widths from regular article blocks', () => {
+    const style = document.createElement('style')
+    style.textContent = '.clipboard-width-test { width: 480px; }'
+    const article = document.createElement('article')
+    article.innerHTML = '<p class="clipboard-width-test">正文</p>'
+    document.head.append(style)
+    document.body.append(article)
+
+    const html = serializeArticleForClipboard(article)
+    const output = document.createElement('div')
+    output.innerHTML = html
+
+    expect(output.querySelector('p')?.style.width).toBe('')
+
+    article.remove()
+    style.remove()
+  })
+
+  it.each([
+    'article-table-image',
+    'mermaid-diagram-image',
+  ])('uses responsive widths for generated %s media', (className) => {
+    const article = document.createElement('article')
+    article.innerHTML = `<img class="${className}" style="width: 480px; max-width: 480px" alt="示例">`
+    document.body.append(article)
+
+    const html = serializeArticleForClipboard(article)
+    const output = document.createElement('div')
+    output.innerHTML = html
+    const image = output.querySelector('img')
+
+    expect(image).toHaveStyle({ width: '100%', maxWidth: '100%' })
+    expect(html).not.toContain('width: 480px')
+
+    article.remove()
+  })
 })
