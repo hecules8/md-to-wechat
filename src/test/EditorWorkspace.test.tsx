@@ -66,13 +66,13 @@ describe('EditorWorkspace', () => {
 
     expect(screen.queryByRole('combobox', { name: '表格主题' })).not.toBeInTheDocument()
     expect(screen.getByRole('radiogroup', { name: '表格主题' })).toBeInTheDocument()
-    expect(screen.getAllByRole('radio')).toHaveLength(4)
-    expect(screen.getByRole('radio', { name: '墨绿编辑' })).toBeChecked()
+    expect(screen.getAllByRole('radio')).toHaveLength(7)
+    expect(screen.getByRole('radio', { name: '翡翠绿' })).toBeChecked()
 
-    await user.click(screen.getByRole('radio', { name: '科技蓝' }))
+    await user.click(screen.getByRole('radio', { name: '冰川蓝' }))
 
     expect(screen.getByLabelText('公众号文章预览')).toHaveAttribute('data-table-theme', 'ocean')
-    expect(screen.getByRole('radio', { name: '科技蓝' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: '冰川蓝' })).toBeChecked()
     await user.click(screen.getByRole('button', { name: '生成高清表格图片' }))
     await waitFor(() => expect(capture).toHaveBeenCalled())
     expect(capturedTheme).toBe('ocean')

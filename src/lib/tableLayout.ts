@@ -27,10 +27,23 @@ export function calculateAutoColumnWidths(
   minimumPercentage: number,
 ): number[] {
   const columnCount = Math.max(0, ...rows.map((row) => row.length))
+  // Use the browser's font metrics for mixed Chinese/Latin text. The fallback
+  // also keeps layout available in non-canvas environments.
+  const context = typeof CanvasRenderingContext2D !== 'undefined'
+    ? document.createElement('canvas').getContext('2d')
+    : null
+  const fontFamily = typeof document !== 'undefined'
+    ? getComputedStyle(document.documentElement).getPropertyValue('--font-sans').trim()
+    : ''
   const contentWeights = Array.from({ length: columnCount }, (_, columnIndex) => {
     const contentWidth = Math.max(
       0,
-      ...rows.map((row) => getTextUnits(row[columnIndex] ?? '') * fontSize),
+      ...rows.map((row, rowIndex) => {
+        if (context) context.font = `${rowIndex === 0 ? 700 : columnIndex === 0 ? 650 : 400} ${fontSize}px ${fontFamily || 'sans-serif'}`
+        return Math.max(0, ...(row[columnIndex] ?? '').split(/\r?\n/).map((line) =>
+          context?.measureText(normalizeCellText(line)).width ?? getTextUnits(line) * fontSize,
+        ))
+      }),
     )
     return Math.max(1, contentWidth + HORIZONTAL_CELL_PADDING)
   })
@@ -44,15 +57,28 @@ function roundPercentage(value: number): number {
 function normalizePercentages(weights: number[], requestedMinimum: number): number[] {
   if (weights.length === 0) return []
   const minimum = Math.min(requestedMinimum, TOTAL_WIDTH_PERCENT / weights.length)
-  const distributable = TOTAL_WIDTH_PERCENT - minimum * weights.length
-  const totalWeight = weights.reduce((total, weight) => total + Math.max(0, weight), 0)
-  const percentages = weights.map((weight) =>
-    roundPercentage(minimum + distributable * (Math.max(0, weight) / (totalWeight || 1))),
-  )
+  const percentages = weights.map(() => 0)
+  let pending = weights.map((_, index) => index)
+  let remaining = TOTAL_WIDTH_PERCENT
+  while (pending.length > 0) {
+    const totalWeight = pending.reduce((total, index) => total + weights[index], 0)
+    const share = (index: number) => totalWeight > 0
+      ? remaining * weights[index] / totalWeight
+      : remaining / pending.length
+    const tooNarrow = pending.filter((index) => share(index) < minimum)
+    if (tooNarrow.length === 0) {
+      pending.forEach((index) => { percentages[index] = roundPercentage(share(index)) })
+      break
+    }
+    tooNarrow.forEach((index) => { percentages[index] = roundPercentage(minimum) })
+    remaining -= minimum * tooNarrow.length
+    pending = pending.filter((index) => !tooNarrow.includes(index))
+  }
   const difference = roundPercentage(
     TOTAL_WIDTH_PERCENT - percentages.reduce((total, percentage) => total + percentage, 0),
   )
-  percentages[percentages.length - 1] = roundPercentage(percentages[percentages.length - 1] + difference)
+  const widestIndex = percentages.indexOf(Math.max(...percentages))
+  percentages[widestIndex] = roundPercentage(percentages[widestIndex] + difference)
   return percentages
 }
 
@@ -102,7 +128,11 @@ export function setTableColumnWidths(table: HTMLTableElement, widths: number[]):
 
 function getTableRows(table: HTMLTableElement): string[][] {
   return Array.from(table.rows).map((row) =>
-    Array.from(row.cells).map((cell) => normalizeCellText(cell.textContent)),
+    Array.from(row.cells).map((cell) => {
+      const copy = cell.cloneNode(true) as HTMLElement
+      copy.querySelectorAll('br').forEach((br) => br.replaceWith('\n'))
+      return (copy.textContent ?? '').split(/\r?\n/).map(normalizeCellText).join('\n')
+    }),
   )
 }
 
@@ -115,7 +145,7 @@ export function getTableDefinitions(
   template.innerHTML = html
   return Array.from(template.content.querySelectorAll('table')).map((table) => {
     const rows = getTableRows(table)
-    const headers = rows[0]?.map((header, index) => header || `第 ${index + 1} 列`) ?? []
+    const headers = rows[0]?.map((header, index) => normalizeCellText(header) || `第 ${index + 1} 列`) ?? []
     return {
       headers,
       rows,

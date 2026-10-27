@@ -343,10 +343,10 @@ export function EditorWorkspace({
         </div>
 
         <section className="theme-picker" role="radiogroup" aria-label="表格主题">
-          <span className="theme-picker-title">表格主题</span>
+          <span className="theme-picker-title">纯色配色</span>
           <div className="theme-options">
             {TABLE_THEMES.map((item) => (
-              <label className="theme-chip" data-theme-chip={item.id} key={item.id}>
+              <label className="theme-chip" data-theme-chip={item.id} key={item.id} title={item.description}>
                 <input
                   type="radio"
                   name="table-theme"
@@ -369,7 +369,7 @@ export function EditorWorkspace({
         <section className="table-control-bar" aria-label="表格排版设置">
           <div className="control-intro">
             <strong>表格排版</strong>
-            <span>预览与 PNG 同步</span>
+            <span>1.2 倍行距 · 预览与 PNG 同步</span>
           </div>
           <label className="range-control">
             <span>

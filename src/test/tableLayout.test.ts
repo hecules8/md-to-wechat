@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   adjustColumnPercentage,
   calculateAutoColumnWidths,
+  getTableDefinitions,
   setTableColumnWidths,
 } from '../lib/tableLayout'
 
@@ -35,6 +36,35 @@ describe('table column layout', () => {
       '35%',
       '65%',
     ])
+  })
+
+  it('preserves natural content proportions when no column needs the minimum', () => {
+    // At 14 px these columns need 56 and 140 px including cell padding.
+    const widths = calculateAutoColumnWidths([['中文', '中文中文中文中文']], 14, 10)
+    expect(widths[0]).toBeCloseTo(28.6, 1)
+    expect(widths[1]).toBeCloseTo(71.4, 1)
+  })
+
+  it('uses the longest explicit line rather than joining separate lines', () => {
+    const singleLine = calculateAutoColumnWidths([['中文', '中文中文']], 14, 10)
+    expect(calculateAutoColumnWidths([['中文\n中文', '中文中文']], 14, 10)).toEqual(singleLine)
+    const [definition] = getTableDefinitions(
+      '<table><tr><th>名称</th><th>说明</th></tr><tr><td>中文<br>中文</td><td>中文中文</td></tr></table>',
+      14, 10,
+    )
+    expect(definition.autoWidths).toEqual(singleLine)
+  })
+
+  it('checks every body row, clamps short columns, and keeps the total at 100%', () => {
+    const widths = calculateAutoColumnWidths([
+      ['名称', '状态', '说明'],
+      ['A', '短', '简短'],
+      ['B', '中文'.repeat(10), '中文'.repeat(50)],
+    ], 14, 10)
+    expect(widths[0]).toBe(10)
+    expect(widths[2]).toBeGreaterThan(widths[1] * 4)
+    expect(widths.reduce((total, width) => total + width, 0)).toBeCloseTo(100)
+    expect(calculateAutoColumnWidths([Array(12).fill('')], 14, 10).every((width) => width > 0)).toBe(true)
   })
 
   it('rebalances the other columns when one percentage is adjusted', () => {
