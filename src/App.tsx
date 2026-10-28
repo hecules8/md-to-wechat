@@ -19,7 +19,7 @@ export default function App() {
           <h1 id="page-title">MD to Wechat</h1>
         </div>
         <p>
-          导入 Markdown，实时检查版式。一键把表格转换为适合手机阅读的高清 PNG，
+          导入 Markdown，实时检查版式。将表格转为高清 PNG，按段落插入本地配图，
           标题、段落和列表仍可在公众号中继续编辑。
         </p>
       </section>

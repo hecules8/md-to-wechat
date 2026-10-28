@@ -33,7 +33,7 @@ const WECHAT_TEXT_ALIGN_VALUES: Record<string, string> = {
   end: 'right',
 }
 
-const RESPONSIVE_IMAGE_SELECTOR = '.article-table-image, .mermaid-diagram-image'
+const RESPONSIVE_IMAGE_SELECTOR = '.article-table-image, .mermaid-diagram-image, .article-illustration-image'
 
 function replacePreformattedBlocksForWechat(root: HTMLElement): void {
   root.querySelectorAll('pre').forEach((preformatted) => {
@@ -53,6 +53,7 @@ export type CopyFunction = (html: string, plainText: string) => Promise<void>
 
 export function serializeArticleForClipboard(root: HTMLElement): string {
   const clone = root.cloneNode(true) as HTMLElement
+  clone.removeAttribute('data-rendered-source')
   const sources = [root, ...Array.from(root.querySelectorAll<HTMLElement>('*'))]
   const targets = [clone, ...Array.from(clone.querySelectorAll<HTMLElement>('*'))]
 

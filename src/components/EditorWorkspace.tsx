@@ -14,6 +14,8 @@ import {
   type TableArtifact,
 } from '../lib/tableCapture'
 import { TABLE_THEMES, type TableThemeId } from '../lib/themes'
+import { IllustrationPanel } from './IllustrationPanel'
+import { getIllustrationAnchors, insertIllustrations, type ArticleIllustration } from '../lib/illustrations'
 import {
   applyTableColumnLayout,
   adjustColumnPercentage,
@@ -90,6 +92,7 @@ export function EditorWorkspace({
   const [tableLayout, setTableLayout] = useState<TableLayoutMode>('auto')
   const [manualColumnWidths, setManualColumnWidths] = useState<TableColumnWidths>([])
   const [activeTableIndex, setActiveTableIndex] = useState(0)
+  const [illustrations, setIllustrations] = useState<ArticleIllustration[]>([])
   const previewRef = useRef<HTMLElement>(null)
 
   const tableStyle = {
@@ -98,19 +101,23 @@ export function EditorWorkspace({
   } as CSSProperties
 
   const sourceHtml = useMemo(() => renderMarkdown(markdown), [markdown])
+  const illustrationAnchors = useMemo(() => getIllustrationAnchors(sourceHtml), [sourceHtml])
+  const illustratedHtml = useMemo(() => insertIllustrations(sourceHtml, illustrations), [sourceHtml, illustrations])
   const tableDefinitions = useMemo(
     () => getTableDefinitions(sourceHtml, tableFontSize, cellWidth),
     [cellWidth, sourceHtml, tableFontSize],
   )
   const renderedHtml = useMemo(
     () => applyTableColumnLayout(
-      convertedHtml ?? sourceHtml,
+      convertedHtml ?? illustratedHtml,
       tableDefinitions,
       tableLayout,
       manualColumnWidths,
     ),
-    [convertedHtml, manualColumnWidths, sourceHtml, tableDefinitions, tableLayout],
+    [convertedHtml, manualColumnWidths, illustratedHtml, tableDefinitions, tableLayout],
   )
+  const hasUnconvertedTables = tableDefinitions.length > 0 && (!convertedHtml || convertedHtml.includes('data-table-capture='))
+  const canCopyArticle = !!markdown.trim() && !hasUnconvertedTables && !isConverting && !isRenderingMermaid
   useEffect(() => {
     const preview = previewRef.current
     if (!preview || preview.dataset.renderedSource === renderedHtml) return
@@ -162,6 +169,7 @@ export function EditorWorkspace({
     if (!file) return
     const text = await readLocalFile(file)
     setFilename(file.name)
+    setIllustrations(current => current.map(item => ({ ...item, anchorId: null })))
     updateMarkdown(text)
     setStatus(`已导入 ${file.name}`)
     event.target.value = ''
@@ -205,7 +213,7 @@ export function EditorWorkspace({
 
   const copyToWechat = async () => {
     const preview = previewRef.current
-    if (!preview || artifacts.length === 0) {
+    if (!preview || !canCopyArticle || preview.querySelector('[data-table-capture]')) {
       setStatus('请先生成表格图片')
       return
     }
@@ -287,6 +295,27 @@ export function EditorWorkspace({
     setStatus('已恢复可编辑表格')
   }
 
+  const updateIllustrations = (update: (current: ArticleIllustration[]) => ArticleIllustration[]) => {
+    setIllustrations(update)
+    setConvertedHtml(null)
+    setArtifacts([])
+    setStatus('配图已更新；如有表格，请重新生成表格图片')
+  }
+
+  const exportArticle = () => {
+    const preview = previewRef.current
+    if (!preview) return
+    const content = serializeArticleForClipboard(preview)
+    const html = `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>图文草稿</title><style>body{margin:0;padding:24px;background:#f6f5f1}article{box-sizing:border-box;max-width:720px;margin:auto}img{height:auto;max-width:100%}figure{margin-left:0;margin-right:0}</style></head><body>${content}</body></html>`
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${filename.replace(/\.[^.]+$/, '')}-图文.html`
+    link.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 0)
+    setStatus('已下载图文 HTML，包含当前预览与内嵌图片')
+  }
+
   return (
     <main className="workspace">
       <section className="editor-panel" aria-labelledby="editor-title">
@@ -327,6 +356,8 @@ export function EditorWorkspace({
         <p className="privacy-note">
           文件只在当前浏览器中解析。表格以 2× 清晰度生成，正文不会变成图片。
         </p>
+        <IllustrationPanel markdown={markdown} anchors={illustrationAnchors} illustrations={illustrations}
+          disabled={isConverting || isRenderingMermaid} onChange={updateIllustrations} onExport={exportArticle} />
       </section>
 
       <section className="preview-panel" aria-labelledby="preview-title">
@@ -529,9 +560,9 @@ export function EditorWorkspace({
             <button
               className="secondary-button"
               type="button"
-              disabled={isConverting || isRenderingMermaid || artifacts.length === 0}
+              disabled={!canCopyArticle}
               onClick={copyToWechat}
-              title={artifacts.length === 0 ? '请先生成表格图片' : '复制整篇富文本至微信公众号'}
+              title={hasUnconvertedTables ? '请先生成表格图片' : '复制整篇富文本至微信公众号'}
             >
               复制至微信公众号
             </button>

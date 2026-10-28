@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { serializeArticleForClipboard } from '../lib/clipboard'
 
 describe('serializeArticleForClipboard', () => {
+  it('does not duplicate embedded pictures inside runtime tracking attributes', () => {
+    const article = document.createElement('article')
+    article.innerHTML = '<img class="article-illustration-image" src="data:image/png;base64,aGVsbG8=">'
+    article.dataset.renderedSource = article.innerHTML
+    const html = serializeArticleForClipboard(article)
+    expect(html).not.toContain('data-rendered-source')
+    expect(html.match(/aGVsbG8=/g)).toHaveLength(1)
+  })
   it.each([
     ['start', 'left'],
     ['end', 'right'],
@@ -65,6 +73,7 @@ describe('serializeArticleForClipboard', () => {
   it.each([
     'article-table-image',
     'mermaid-diagram-image',
+    'article-illustration-image',
   ])('uses responsive widths for generated %s media', (className) => {
     const article = document.createElement('article')
     article.innerHTML = `<img class="${className}" style="width: 480px; max-width: 480px" alt="示例">`
